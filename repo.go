@@ -84,39 +84,44 @@ func CreateStore(remote string) error {
 	}
 	return nil
 }
-
+func GetRawJsonContent(path string, masterPassword string) ([]byte, error) {
+  file, err := os.Open(path)
+  if err != nil {
+    if !os.IsNotExist(err) {
+      HandleErr(err, fmt.Sprintf("Couldn't open content file at path %v", path))
+      return nil, err
+    }
+    return []byte{}, nil
+  } else {
+    b, err := ioutil.ReadAll(file)
+    file.Close()
+    if err != nil {
+      HandleErr(err, fmt.Sprintf("Couldn't read content file at path %v", path))
+      return nil, err
+    }
+    salt := b[:32]
+    b = b[32:]
+    key := MakeKey([]byte(masterPassword), salt)
+    // decode to json object
+    return Decrypt(b, &key)
+  }
+}
 func GetJsonContent(path string, masterPassword string) (map[string]interface{}, error) {
 	// read file content
   jsonDocument := map[string]interface{}{}
-	file, err := os.Open(path)
-	if err != nil {
-    if !os.IsNotExist(err) {
-      HandleErr(err, fmt.Sprintf("Couldn't open content file at path %v", path))
-	    return nil, err
+	rawjson, err := GetRawJsonContent(path, masterPassword)
+  if err != nil {
+    if os.IsNotExist(err) {
+      return jsonDocument, nil
     }
-    return jsonDocument, nil
-	} else {
-	  b, err := ioutil.ReadAll(file)
-	  file.Close()
-	  if err != nil {
-      HandleErr(err, fmt.Sprintf("Couldn't read content file at path %v", path))
-		  return nil, err
-	  }
-	  salt := b[:32]
-	  b = b[32:]
-	  key := MakeKey([]byte(masterPassword), salt)
-	  // decode to json object
-	  rawjson, err := Decrypt(b, &key)
-	  if err != nil {
-		  return nil, err
-	  }
-	  err = json.Unmarshal(rawjson, &jsonDocument)
-	  if err != nil {
-      HandleErr(err, "Couldn't read content file as JSON object")
-		  return nil, err
-	  }
-	  return jsonDocument, err
+    return nil, err
   }
+  err = json.Unmarshal(rawjson, &jsonDocument)
+  if err != nil {
+    HandleErr(err, "Couldn't read content file as JSON object")
+	  return nil, err
+  }
+  return jsonDocument, err
 }
 
 func StoreSetValue(path string, property string, value string, masterPassword string) error {

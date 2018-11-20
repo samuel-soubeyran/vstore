@@ -11,9 +11,11 @@ import (
 )
 
 func PrintUsage() {
-	fmt.Println("Usage: goscrypt reset |  password path/to/obj property [value]")
-	fmt.Println("If a value is specified, the value will be upserted to the object property at path")
-	fmt.Println("If no value is specified, return the value of the property at path. Support fuzzy path matching. If ambiguous, return list of potential path")
+	fmt.Println("Usage:")
+	fmt.Println("vstore reset : reset the local store")
+	fmt.Println("vstore password path/to/file : get content of file")
+	fmt.Println("vstore password path/to/file /jsonpointer : get value at /jsonpointer")
+	fmt.Println("vstore password path/to/file /jsonpointer value : set value at /jsonpointer")
 }
 
 func Reset() error {
@@ -30,11 +32,12 @@ func Reset() error {
 	fmt.Printf("Successfully deleted: %s\n", path)
 	return nil
 }
-func stdinselector(paths fuzzy.Matches) (string, error) {
+
+func StdinSelector(target string, paths fuzzy.Matches) (string, error) {
 	for i := 0; i < len(paths); i++ {
 		fmt.Printf(" %d => %s\n", i, paths[i].Str)
 	}
-	fmt.Printf(" %d => %s\n", len(paths), " ... enter new file path")
+	fmt.Printf(" %d => %s\n", len(paths), " ... new file path")
 	var idx string
 	fmt.Scanln(&idx)
 	i, err := strconv.Atoi(idx)
@@ -49,23 +52,20 @@ func stdinselector(paths fuzzy.Matches) (string, error) {
 		return "", errors.New("Couldn't parse input as integer.")
 	}
 	if i >= len(paths) {
-		fmt.Print("new file path: ")
-		var relpath string
-		fmt.Scanln(&relpath)
 		storepath, err := GetStorePath()
 		if err != nil {
 			return "", err
 		}
-		path := filepath.Join(storepath, relpath)
+		path := filepath.Join(storepath, target)
 		exists, _ := PathExists(path)
 		if exists {
-			return relpath, nil
+			return target, nil
 		}
 		err = os.MkdirAll(filepath.Dir(path), os.ModePerm)
 		if err != nil {
 			return "", err
 		}
-		return relpath, nil
+		return target, nil
 	}
 	return paths[i].Str, nil
 }
@@ -77,6 +77,7 @@ func main() {
 		PrintUsage()
 		os.Exit(1)
 	}
+	// Reset the store
 	if len(args) == 1 {
 		if args[0] != "reset" {
 			PrintUsage()
@@ -85,54 +86,58 @@ func main() {
 		Reset()
 		os.Exit(0)
 	}
-	if len(args) < 3 || len(args) > 4 {
+
+	if len(args) < 2 || len(args) > 4 {
 		PrintUsage()
 		os.Exit(1)
 	}
-  log.Println("Get Salt")
-	salt, err := GetSalt()
+	
+	// Get the settings
+  password := args[0]
+	settings, err := GetSettings(password)
 	if err != nil {
 		log.Fatal(err)
-		os.Exit(1)
 	}
-  log.Println("Create AES Key from password and salt")
-	key := MakeKey([]byte(args[0]), salt)
-  log.Println("Get settings")
-	settings, err := GetSettings(&key)
-	if err != nil {
-		log.Fatal(err)
-		os.Exit(1)
-	}
-  log.Println("Update Store")
+
+	// Update the store
 	err = UpdateStore(settings.Remote)
 	if err != nil {
 		log.Fatal(err)
-		os.Exit(1)
 	}
-	objectName := args[1]
-  log.Println("Find object path")
-	path, err := FindObjectPath(objectName, stdinselector)
+
+	// Get content file path
+	filepath := args[1]
+	path, err := FindObjectPath(filepath, StdinSelector)
 	if err != nil {
 		log.Fatal(err)
-		os.Exit(1)
 	}
-	property := args[2]
-	if len(args) > 3 {
-		value := args[3]
-    log.Println("Set value in store")
-		err := StoreSetValue(path, property, value, settings.MasterKey)
+
+	// case 1 : Get file content
+	if len(args) == 2 {
+		rawjson, err := GetRawJsonContent(path, settings.MasterKey)
 		if err != nil {
-      log.Fatal("Couldn't set the value: ", err)
-			os.Exit(1)
+			log.Fatal("Couldn't get the content of file ", err)
 		}
-	} else {
-    log.Println("Get store value")
-		value, err := StoreGetValue(path, property, settings.MasterKey)
+		fmt.Println(string(rawjson))
+		os.Exit(0)
+	}
+	jsonpointer := args[2]
+	// case 2 : Get value of file at json pointer
+	if len(args) == 3 {
+		log.Println("Get store value")
+		value, err := StoreGetValue(path, jsonpointer, settings.MasterKey)
 		if err != nil {
-			log.Fatal("Couldn't get the value", err)
-			os.Exit(1)
+			log.Fatal("Couldn't get the value ", err)
 		}
 		fmt.Println(value)
 		os.Exit(0)
+	}
+	// case 3 : Set value of file at json pointer
+	if len(args) > 3 {
+		value := args[3]
+		err := StoreSetValue(path, jsonpointer, value, settings.MasterKey)
+		if err != nil {
+      log.Fatal("Couldn't set the value: ", err)
+		}
 	}
 }

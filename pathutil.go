@@ -11,7 +11,7 @@ const (
 	ROOT_FOLDER_NAME = "vstore"
 )
 
-func FindObjectPath(objectName string, selector func(fuzzy.Matches) (string, error)) (string, error) {
+func FindObjectPath(objectName string, selector func(string, fuzzy.Matches) (string, error)) (string, error) {
 	matches, err := GetFuzzyPath(objectName)
 	if err != nil {
 		return "", err
@@ -23,7 +23,7 @@ func FindObjectPath(objectName string, selector func(fuzzy.Matches) (string, err
 	if len(matches) == 1 {
 		return filepath.Join(storepath, matches[0].Str), nil
 	} else {
-		path, err := selector(matches)
+		path, err := selector(objectName, matches)
 		if err != nil {
 			return "", err
 		}

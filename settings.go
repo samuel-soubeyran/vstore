@@ -24,7 +24,15 @@ func GetSettingsFilePath() (string, error) {
 	}
 	return filepath.Join(path, ENCRYPTED_SETTINGS_FILE), nil
 }
-func GetSettings(key *[32]byte) (usersettings, error) {
+
+
+func GetSettings(password string) (usersettings, error) {
+	salt, err := GetSalt()
+	if err != nil {
+		return usersettings{}, err
+	}
+  key := MakeKey([]byte(password), salt)
+
 	settingsPath, err := GetSettingsFilePath()
 	if err != nil {
 		return usersettings{}, err
@@ -35,7 +43,7 @@ func GetSettings(key *[32]byte) (usersettings, error) {
       HandleErr(err, "Couldn't open settings file")
 			return usersettings{}, err
 		}
-		return CreateSettings(key)
+		return CreateSettings(&key)
 	}
 	defer file.Close()
 	b, err := ioutil.ReadAll(file)
@@ -43,7 +51,7 @@ func GetSettings(key *[32]byte) (usersettings, error) {
     HandleErr(err, "Couldn't read settings file")
 		return usersettings{}, err
 	}
-	rawSettings, err := Decrypt(b, key)
+	rawSettings, err := Decrypt(b, &key)
 	if err != nil {
     HandleErr(err, "Couldn't decrypt settings file content")
 		return usersettings{}, err
