@@ -1,10 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"github.com/sahilm/fuzzy"
 	"os"
 	"path/filepath"
-  "fmt"
 )
 
 const (
@@ -16,10 +16,10 @@ func FindObjectPath(objectName string, selector func(string, fuzzy.Matches) (str
 	if err != nil {
 		return "", err
 	}
-  storepath, err := GetStorePath()
-  if err != nil {
-    return "", err
-  }
+	storepath, err := GetStorePath()
+	if err != nil {
+		return "", err
+	}
 	if len(matches) == 1 {
 		return filepath.Join(storepath, matches[0].Str), nil
 	} else {
@@ -36,10 +36,10 @@ func GetFuzzyPath(objectName string) (fuzzy.Matches, error) {
 	if err != nil {
 		return nil, err
 	}
-  exists, _ := PathExists(storepath)
-  if !exists {
-    return fuzzy.Matches{}, nil
-  }
+	exists, _ := PathExists(storepath)
+	if !exists {
+		return fuzzy.Matches{}, nil
+	}
 	files, err := FilePathWalkDir(storepath)
 	if err != nil {
 		return nil, err
@@ -52,15 +52,15 @@ func FilePathWalkDir(root string) ([]string, error) {
 	var files []string
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if !info.IsDir() {
-      storepath, err := GetStorePath()
-      if err != nil {
-        return err
-      }
-      relpath, err := filepath.Rel(storepath, path)
-      if err != nil {
-        HandleErr(err, fmt.Sprintf("Couldn't get a relative path from %v with base %v", path, storepath))
-        return err
-      }
+			storepath, err := GetStorePath()
+			if err != nil {
+				return err
+			}
+			relpath, err := filepath.Rel(storepath, path)
+			if err != nil {
+				HandleErr(err, fmt.Sprintf("Couldn't get a relative path from %v with base %v", path, storepath))
+				return err
+			}
 			files = append(files, relpath)
 		}
 		return nil

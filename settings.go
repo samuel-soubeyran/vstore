@@ -25,7 +25,6 @@ func GetSettingsFilePath() (string, error) {
 	return filepath.Join(path, ENCRYPTED_SETTINGS_FILE), nil
 }
 
-
 func GetSettings(password string) (usersettings, error) {
 	settingsPath, err := GetSettingsFilePath()
 	if err != nil {
@@ -34,34 +33,34 @@ func GetSettings(password string) (usersettings, error) {
 	file, err := os.Open(settingsPath)
 	if err != nil {
 		if !os.IsNotExist(err) {
-      HandleErr(err, "Couldn't open settings file")
+			HandleErr(err, "Couldn't open settings file")
 			return usersettings{}, err
 		}
 		return CreateSettings(password)
 	}
 	defer file.Close()
 	b, err := ioutil.ReadAll(file)
-  var salt [PW_SALT_BYTES]byte
-  copy(salt[:], b[:PW_SALT_BYTES])
-  b = b[PW_SALT_BYTES:]
+	var salt [PW_SALT_BYTES]byte
+	copy(salt[:], b[:PW_SALT_BYTES])
+	b = b[PW_SALT_BYTES:]
 	if err != nil {
 		return usersettings{}, err
 	}
-  key := MakeKey([]byte(password), salt)
+	key := MakeKey([]byte(password), salt)
 	if err != nil {
-    HandleErr(err, "Couldn't read settings file")
+		HandleErr(err, "Couldn't read settings file")
 		return usersettings{}, err
 	}
 	rawSettings, err := Decrypt(b, &key)
 	if err != nil {
-    HandleErr(err, "Couldn't decrypt settings file content")
+		HandleErr(err, "Couldn't decrypt settings file content")
 		return usersettings{}, err
 	}
 	var userSettings usersettings
 	err = json.Unmarshal(rawSettings, &userSettings)
-  if err != nil {
-    HandleErr(err, "Couldn't read settings as JSON object")
-  }
+	if err != nil {
+		HandleErr(err, "Couldn't read settings as JSON object")
+	}
 	return userSettings, err
 }
 
@@ -90,28 +89,28 @@ func CreateEncodedSettingsFile(password string, salt [PW_SALT_BYTES]byte, settin
 	if err != nil {
 		return err
 	}
-  key := MakeKey([]byte(password), salt)
+	key := MakeKey([]byte(password), salt)
 	encrypted, err := Encrypt(b, &key)
 	if err != nil {
-    HandleErr(err, "Couldn't encrypt user settings")
+		HandleErr(err, "Couldn't encrypt user settings")
 		return err
 	}
 	path, err := GetSettingsFilePath()
 	if err != nil {
 		return err
 	}
-  err = ioutil.WriteFile(path, append(salt[:], encrypted...), 0644)
+	err = ioutil.WriteFile(path, append(salt[:], encrypted...), 0644)
 	if err != nil {
-    if os.IsNotExist(err) {
-      _, err = CreateRootDir()
-      if err == nil {
-        err = ioutil.WriteFile(path, append(salt[:], encrypted...), 0644)
-      }
-    }
-    if err != nil {
-      HandleErr(err, "Couldn't write settings file")
-		  return err
-    }
+		if os.IsNotExist(err) {
+			_, err = CreateRootDir()
+			if err == nil {
+				err = ioutil.WriteFile(path, append(salt[:], encrypted...), 0644)
+			}
+		}
+		if err != nil {
+			HandleErr(err, "Couldn't write settings file")
+			return err
+		}
 	}
 	return nil
 }

@@ -71,7 +71,7 @@ func StdinSelector(target string, paths fuzzy.Matches) (string, error) {
 }
 
 func main() {
-  log.SetFlags(log.LstdFlags | log.Lshortfile)
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	args := os.Args[1:]
 	if len(args) == 0 || len(args) > 4 {
 		PrintUsage()
@@ -91,9 +91,9 @@ func main() {
 		PrintUsage()
 		os.Exit(1)
 	}
-	
+
 	// Get the settings
-  password := args[0]
+	password := args[0]
 	settings, err := GetSettings(password)
 	if err != nil {
 		log.Fatal(err)
@@ -136,7 +136,7 @@ func main() {
 		value := args[3]
 		err := StoreSetValue(path, jsonpointer, value, settings.MasterKey)
 		if err != nil {
-      log.Fatal("Couldn't set the value: ", err)
+			log.Fatal("Couldn't set the value: ", err)
 		}
 	}
 }
