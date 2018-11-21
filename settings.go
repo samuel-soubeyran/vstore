@@ -102,8 +102,16 @@ func CreateEncodedSettingsFile(password string, salt [PW_SALT_BYTES]byte, settin
 	}
   err = ioutil.WriteFile(path, append(salt[:], encrypted...), 0644)
 	if err != nil {
-    HandleErr(err, "Couldn't write settings file")
-		return err
+    if os.IsNotExist(err) {
+      _, err = CreateRootDir()
+      if err == nil {
+        err = ioutil.WriteFile(path, append(salt[:], encrypted...), 0644)
+      }
+    }
+    if err != nil {
+      HandleErr(err, "Couldn't write settings file")
+		  return err
+    }
 	}
 	return nil
 }
