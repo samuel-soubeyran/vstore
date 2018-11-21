@@ -1,5 +1,5 @@
 # VStore
-VStore is a file based, secure and versionned KV store.
+VStore is a file based, encrypted and versionned KV store.
 The underlying storage is a git repository. The data is encrypted and decrypted from files.
 
 ## Usage.
@@ -24,6 +24,8 @@ On the first invocation, VStore ask for a master password and a remote repositor
 
 VStore supports fuzzy matching of file path. If multiple or no file path match the input, VStore give the option to select one of them or to create a new one.
 
+## Disclaimer.
+I'm not a security expert. Use at your own risk.
 
 ## Demo.
 TODO
