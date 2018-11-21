@@ -27,12 +27,6 @@ func GetSettingsFilePath() (string, error) {
 
 
 func GetSettings(password string) (usersettings, error) {
-	salt, err := GetSalt()
-	if err != nil {
-		return usersettings{}, err
-	}
-  key := MakeKey([]byte(password), salt)
-
 	settingsPath, err := GetSettingsFilePath()
 	if err != nil {
 		return usersettings{}, err
@@ -43,10 +37,17 @@ func GetSettings(password string) (usersettings, error) {
       HandleErr(err, "Couldn't open settings file")
 			return usersettings{}, err
 		}
-		return CreateSettings(&key)
+		return CreateSettings(password)
 	}
 	defer file.Close()
 	b, err := ioutil.ReadAll(file)
+  var salt [PW_SALT_BYTES]byte
+  copy(salt[:], b[:PW_SALT_BYTES])
+  b = b[PW_SALT_BYTES:]
+	if err != nil {
+		return usersettings{}, err
+	}
+  key := MakeKey([]byte(password), salt)
 	if err != nil {
     HandleErr(err, "Couldn't read settings file")
 		return usersettings{}, err
@@ -64,7 +65,7 @@ func GetSettings(password string) (usersettings, error) {
 	return userSettings, err
 }
 
-func CreateSettings(key *[32]byte) (usersettings, error) {
+func CreateSettings(password string) (usersettings, error) {
 	fmt.Println("Could not find settings file. Creating a new one.")
 	var masterKey string
 	var remote string
@@ -72,20 +73,25 @@ func CreateSettings(key *[32]byte) (usersettings, error) {
 	fmt.Scanln(&masterKey)
 	fmt.Print("remote: ")
 	fmt.Scanln(&remote)
+	salt, err := GenerateSalt()
+	if err != nil {
+		return usersettings{}, err
+	}
 	settings := usersettings{Remote: remote, MasterKey: masterKey}
-	err := CreateEncodedSettingsFile(key, settings)
+	err = CreateEncodedSettingsFile(password, salt, settings)
 	if err != nil {
 		return usersettings{}, err
 	}
 	return settings, nil
 }
 
-func CreateEncodedSettingsFile(key *[32]byte, settings usersettings) error {
+func CreateEncodedSettingsFile(password string, salt [PW_SALT_BYTES]byte, settings usersettings) error {
 	b, err := json.Marshal(settings)
 	if err != nil {
 		return err
 	}
-	encrypted, err := Encrypt(b, key)
+  key := MakeKey([]byte(password), salt)
+	encrypted, err := Encrypt(b, &key)
 	if err != nil {
     HandleErr(err, "Couldn't encrypt user settings")
 		return err
@@ -94,7 +100,7 @@ func CreateEncodedSettingsFile(key *[32]byte, settings usersettings) error {
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(path, encrypted, 0644)
+  err = ioutil.WriteFile(path, append(salt[:], encrypted...), 0644)
 	if err != nil {
     HandleErr(err, "Couldn't write settings file")
 		return err

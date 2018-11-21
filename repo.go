@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/xeipuuv/gojsonpointer"
+	"github.com/samuel-soubeyran/gojsonpointer"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 	"io/ioutil"
@@ -87,11 +87,7 @@ func CreateStore(remote string) error {
 func GetRawJsonContent(path string, masterPassword string) ([]byte, error) {
   file, err := os.Open(path)
   if err != nil {
-    if !os.IsNotExist(err) {
-      HandleErr(err, fmt.Sprintf("Couldn't open content file at path %v", path))
-      return nil, err
-    }
-    return []byte{}, nil
+    return nil, err
   } else {
     b, err := ioutil.ReadAll(file)
     file.Close()
@@ -99,7 +95,8 @@ func GetRawJsonContent(path string, masterPassword string) ([]byte, error) {
       HandleErr(err, fmt.Sprintf("Couldn't read content file at path %v", path))
       return nil, err
     }
-    salt := b[:32]
+    var salt [PW_SALT_BYTES]byte
+    copy(salt[:], b[:32])
     b = b[32:]
     key := MakeKey([]byte(masterPassword), salt)
     // decode to json object
@@ -156,7 +153,7 @@ func StoreSetValue(path string, property string, value string, masterPassword st
 		return err
 	}
 	// overwrite file with new encrypted content
-	err = ioutil.WriteFile(path, append(salt, encrypted...), 0644)
+  err = ioutil.WriteFile(path, append(salt[:], encrypted...), 0644)
 	if err != nil {
     HandleErr(err, fmt.Sprintf("Couldn't write content file at path %v", path))
 		return err

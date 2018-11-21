@@ -124,7 +124,6 @@ func main() {
 	jsonpointer := args[2]
 	// case 2 : Get value of file at json pointer
 	if len(args) == 3 {
-		log.Println("Get store value")
 		value, err := StoreGetValue(path, jsonpointer, settings.MasterKey)
 		if err != nil {
 			log.Fatal("Couldn't get the value ", err)
