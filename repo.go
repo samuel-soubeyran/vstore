@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+	"log"
 )
 
 const (
@@ -59,8 +60,7 @@ func UpdateStore(remote string) error {
 	}
 	err = worktree.Pull(&git.PullOptions{})
 	if err != nil && err != git.NoErrAlreadyUpToDate {
-		HandleErr(err, "Couldn't pull the worktree")
-		return err
+		log.Println("Couldn't pull the worktree", err)
 	}
 	return nil
 }
