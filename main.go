@@ -13,9 +13,19 @@ import (
 func PrintUsage() {
 	fmt.Println("Usage:")
 	fmt.Println("vstore reset : reset the local store")
+	fmt.Println("vstore info : print vstore information")
 	fmt.Println("vstore password path/to/file : get content of file")
 	fmt.Println("vstore password path/to/file /jsonpointer : get value at /jsonpointer")
 	fmt.Println("vstore password path/to/file /jsonpointer value : set value at /jsonpointer")
+}
+
+func PrintInfo() {
+	path, err := GetRootPath()
+	if err != nil {
+		return err
+	}
+	fmt.Println("Info")
+	fmt.Printf("store path: %s\n", path)
 }
 
 func Reset() error {
@@ -79,12 +89,16 @@ func main() {
 	}
 	// Reset the store
 	if len(args) == 1 {
-		if args[0] != "reset" {
-			PrintUsage()
-			os.Exit(1)
+		if args[0] == "info" {
+			PrintInfo()
+			os.Exit(0)
 		}
-		Reset()
-		os.Exit(0)
+		if args[0] == "reset" {
+			Reset()
+			os.Exit(0)
+		}
+		PrintUsage()
+		os.Exit(1)
 	}
 
 	if len(args) < 2 || len(args) > 4 {
