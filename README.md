@@ -8,7 +8,7 @@ VSTORE_PASSWORD=<local_password> vstore (get|set) <file path> [<json pointer>]
 echo 'john.doe@gmail.com' | pbcopy
 VSTORE_PASSWORD=aUjk87kdv vstore set credentials/gmail /login
 echo gke94dsFVs | pbcopy
-VSTORE_PASSWORD=aUjk87kdv vstore aUjk87kdv credentials/gmail /password
+VSTORE_PASSWORD=aUjk87kdv vstore credentials/gmail /password
 VSTORE_PASSWORD=aUjk87kdv vstore get credentials/gmail 
 > {"login":"john.doe@gmail.com","password":"gke94dsFVs"}
 VSTORE_PASSWORD=aUjk87kdv vstore get credentials/gmail /login
