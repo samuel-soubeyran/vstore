@@ -7,10 +7,10 @@ import (
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"time"
-	"log"
 )
 
 const (

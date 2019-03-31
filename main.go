@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/atotto/clipboard"
 	"github.com/sahilm/fuzzy"
 	"log"
 	"os"
@@ -14,18 +15,19 @@ func PrintUsage() {
 	fmt.Println("Usage:")
 	fmt.Println("vstore reset : reset the local store")
 	fmt.Println("vstore info : print vstore information")
-	fmt.Println("vstore password path/to/file : get content of file")
-	fmt.Println("vstore password path/to/file /jsonpointer : get value at /jsonpointer")
-	fmt.Println("vstore password path/to/file /jsonpointer value : set value at /jsonpointer")
+	fmt.Println("vstore get path/to/file : get content of file")
+	fmt.Println("vstore get path/to/file /jsonpointer : get value at /jsonpointer, add value to clipboard")
+	fmt.Println("vstore set path/to/file /jsonpointer : set value at /jsonpointer using value in clipboard")
 }
 
-func PrintInfo() {
+func PrintInfo() (error){
 	path, err := GetRootPath()
 	if err != nil {
 		return err
 	}
 	fmt.Println("Info")
 	fmt.Printf("store path: %s\n", path)
+  return nil
 }
 
 func Reset() error {
@@ -79,7 +81,14 @@ func StdinSelector(target string, paths fuzzy.Matches) (string, error) {
 	}
 	return paths[i].Str, nil
 }
-
+func get_value_at_pointer(path string, jsonpointer string, key string) {
+	value, err := StoreGetValue(path, jsonpointer, key)
+	if err != nil {
+		log.Fatal("Couldn't get the value ", err)
+	}
+	clipboard.WriteAll(value)
+	fmt.Println(value)
+}
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	args := os.Args[1:]
@@ -101,13 +110,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	if len(args) < 2 || len(args) > 4 {
-		PrintUsage()
-		os.Exit(1)
-	}
-
 	// Get the settings
-	password := args[0]
+	password := os.Getenv("VSTORE_PASSWORD")
 	settings, err := GetSettings(password)
 	if err != nil {
 		log.Fatal(err)
@@ -126,8 +130,9 @@ func main() {
 		log.Fatal(err)
 	}
 
+	cmd := args[0]
 	// case 1 : Get file content
-	if len(args) == 2 {
+	if cmd == "get" && len(args) == 2 {
 		rawjson, err := GetRawJsonContent(path, settings.MasterKey)
 		if err != nil {
 			log.Fatal("Couldn't get the content of file ", err)
@@ -137,20 +142,21 @@ func main() {
 	}
 	jsonpointer := args[2]
 	// case 2 : Get value of file at json pointer
-	if len(args) == 3 {
-		value, err := StoreGetValue(path, jsonpointer, settings.MasterKey)
-		if err != nil {
-			log.Fatal("Couldn't get the value ", err)
-		}
-		fmt.Println(value)
+	if cmd == "get" && len(args) == 3 {
+		get_value_at_pointer(path, jsonpointer, settings.MasterKey)
 		os.Exit(0)
 	}
 	// case 3 : Set value of file at json pointer
-	if len(args) > 3 {
-		value := args[3]
-		err := StoreSetValue(path, jsonpointer, value, settings.MasterKey)
+	if cmd == "set" && len(args) == 3 {
+		value, err := clipboard.ReadAll()
+		if err != nil {
+			log.Fatal("Couldn't read the value from clipboard")
+		}
+		err = StoreSetValue(path, jsonpointer, value, settings.MasterKey)
 		if err != nil {
 			log.Fatal("Couldn't set the value: ", err)
 		}
+		get_value_at_pointer(path, jsonpointer, settings.MasterKey)
+		os.Exit(0)
 	}
 }
