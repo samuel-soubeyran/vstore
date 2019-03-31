@@ -4,15 +4,18 @@ The underlying storage is a git repository. The data is encrypted and decrypted 
 
 ## Usage.
 ```
-vstore <local password> <file path> [<json pointer>] [<value>]
-vstore aUjk87kdv credentials/gmail /login john.doe@gmail.com
-vstore aUjk87kdv credentials/gmail /password gke94dsFVs
-vstore aUjk87kdv credentials/gmail 
+VSTORE_PASSWORD=<local_password> vstore (get|set) <file path> [<json pointer>]
+echo 'john.doe@gmail.com' | pbcopy
+VSTORE_PASSWORD=aUjk87kdv vstore set credentials/gmail /login
+echo gke94dsFVs | pbcopy
+VSTORE_PASSWORD=aUjk87kdv vstore aUjk87kdv credentials/gmail /password
+VSTORE_PASSWORD=aUjk87kdv vstore get credentials/gmail 
 > {"login":"john.doe@gmail.com","password":"gke94dsFVs"}
-vstore aUjk87kdv credentials/gmail /login
+VSTORE_PASSWORD=aUjk87kdv vstore get credentials/gmail /login
 > john.doe@gmail.com
-vsotre aUjk87kdv credentials/gmail /login jane.doe@gmail.com
-vstore aUjk87kdv credentials/gmail /login
+echo 'jane.doe@gmail.com' | pbcopy
+VSTORE_PASSWORD=aUjk87kdv vstore set credentials/gmail /login
+VSTORE_PASSWORD=aUjk87kdv vstore get credentials/gmail /login
 > jane.doe@gmail.com
 vstore reset
 > Trying to delete: /Users/john/Library/Caches/vstore
