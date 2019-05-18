@@ -18,6 +18,7 @@ func PrintUsage() {
 	fmt.Println("vstore get path/to/file : get content of file")
 	fmt.Println("vstore get path/to/file /jsonpointer : get value at /jsonpointer, add value to clipboard")
 	fmt.Println("vstore set path/to/file /jsonpointer : set value at /jsonpointer using value in clipboard")
+  fmt.Println("vstore create path/to/file: force create file")
 }
 
 func PrintInfo() (error){
@@ -64,22 +65,25 @@ func StdinSelector(target string, paths fuzzy.Matches) (string, error) {
 		return "", errors.New("Couldn't parse input as integer.")
 	}
 	if i >= len(paths) {
-		storepath, err := GetStorePath()
-		if err != nil {
-			return "", err
-		}
-		path := filepath.Join(storepath, target)
-		exists, _ := PathExists(path)
-		if exists {
-			return target, nil
-		}
-		err = os.MkdirAll(filepath.Dir(path), os.ModePerm)
-		if err != nil {
-			return "", err
-		}
-		return target, nil
+    return create_file_object(target)
 	}
 	return paths[i].Str, nil
+}
+func create_file_object(target string)(string, error) {
+	storepath, err := GetStorePath()
+	if err != nil {
+		return "", err
+	}
+	path := filepath.Join(storepath, target)
+	exists, _ := PathExists(path)
+	if exists {
+		return target, nil
+	}
+	err = os.MkdirAll(filepath.Dir(path), os.ModePerm)
+	if err != nil {
+		return "", err
+	}
+	return target, nil
 }
 func get_value_at_pointer(path string, jsonpointer string, key string) {
 	value, err := StoreGetValue(path, jsonpointer, key)
@@ -124,13 +128,30 @@ func main() {
 	}
 
 	// Get content file path
-	filepath := args[1]
-	path, err := FindObjectPath(filepath, StdinSelector)
+	rel_filepath := args[1]
+	path, err := FindObjectPath(rel_filepath, StdinSelector)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	cmd := args[0]
+  // case 0 : Create file
+  if cmd == "create" && len(args) == 2 {
+    rel_path, err := create_file_object(rel_filepath)
+    if err != nil {
+      log.Fatal("Couldn't create file", err)
+    }
+    storepath, err := GetStorePath()
+    if err != nil {
+      log.Fatal("Couldn't get store path")
+    }
+    path = filepath.Join(storepath, rel_path)
+    err = StoreSetValue(path, "/touchobject", "create", settings.MasterKey)
+    if err != nil {
+      log.Fatal("Couldn't write file")
+    }
+    os.Exit(0)
+  }
 	// case 1 : Get file content
 	if cmd == "get" && len(args) == 2 {
 		rawjson, err := GetRawJsonContent(path, settings.MasterKey)
