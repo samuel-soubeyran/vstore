@@ -15,6 +15,7 @@ func PrintUsage() {
 	fmt.Println("Usage:")
 	fmt.Println("vstore reset : reset the local store")
 	fmt.Println("vstore info : print vstore information")
+  fmt.Println("vstore ls: list all files")
 	fmt.Println("vstore get path/to/file : get content of file")
 	fmt.Println("vstore get path/to/file /jsonpointer : get value at /jsonpointer, add value to clipboard")
 	fmt.Println("vstore set path/to/file /jsonpointer : set value at /jsonpointer using value in clipboard")
@@ -44,6 +45,22 @@ func Reset() error {
 	}
 	fmt.Printf("Successfully deleted: %s\n", path)
 	return nil
+}
+
+func ListFiles() error {
+  path, err := GetRootPath()
+  if err != nil {
+    return err
+  }
+  err = filepath.Walk(path,
+    func(path string, info os.FileInfo, err error) error {
+      if err != nil {
+        return err
+      }
+      fmt.Println(path)
+      return nil
+  })
+  return err
 }
 
 func StdinSelector(target string, paths fuzzy.Matches) (string, error) {
@@ -110,6 +127,10 @@ func main() {
 			Reset()
 			os.Exit(0)
 		}
+    if args[0] == "ls" {
+      ListFiles()
+      os.Exit(0)
+    }
 		PrintUsage()
 		os.Exit(1)
 	}
