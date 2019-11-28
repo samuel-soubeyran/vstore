@@ -48,12 +48,15 @@ func Reset() error {
 }
 
 func ListFiles() error {
-  path, err := GetRootPath()
+  path, err := GetStorePath()
   if err != nil {
     return err
   }
   err = filepath.Walk(path,
     func(path string, info os.FileInfo, err error) error {
+      if filepath.Base(path) == ".git" {
+        return filepath.SkipDir
+      }
       if err != nil {
         return err
       }
