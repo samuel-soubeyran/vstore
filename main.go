@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+  "github.com/sethvargo/go-password/password"
 )
 
 func PrintUsage() {
@@ -64,6 +65,10 @@ func ListFiles() error {
       return nil
   })
   return err
+}
+
+func GeneratePassword() (string, error) {
+  return password.Generate(10, 3, 2, false, false)
 }
 
 func StdinSelector(target string, paths fuzzy.Matches) (string, error) {
@@ -192,8 +197,13 @@ func main() {
 		os.Exit(0)
 	}
 	// case 3 : Set value of file at json pointer
-	if cmd == "set" && len(args) == 3 {
-		value, err := clipboard.ReadAll()
+	if cmd == "set" && len(args) <= 4 {
+    value, err := "", errors.New("")
+    if len(args) == 4 && args[3] == "-g" {
+      value, err = GeneratePassword()
+    } else {
+		  value, err = clipboard.ReadAll()
+    }
 		if err != nil {
 			log.Fatal("Couldn't read the value from clipboard")
 		}
