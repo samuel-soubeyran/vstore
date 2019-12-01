@@ -120,44 +120,7 @@ func GetJsonContent(path string, masterPassword string) (map[string]interface{},
 	}
 	return jsonDocument, err
 }
-
-func StoreSetValue(path string, property string, value string, masterPassword string) error {
-	jsonDocument, err := GetJsonContent(path, masterPassword)
-	if err != nil {
-		return err
-	}
-	// update value
-	pointer, err := gojsonpointer.NewJsonPointer(property)
-	if err != nil {
-		HandleErr(err, fmt.Sprintf("%v is not a valid JSON pointer", property))
-		return err
-	}
-	_, err = pointer.Set(jsonDocument, value)
-	if err != nil {
-		HandleErr(err, fmt.Sprintf("Couldn't update content file at path %v with property %v and value %v", path, property, value))
-		return err
-	}
-	nb, err := json.Marshal(jsonDocument)
-	if err != nil {
-		HandleErr(err, "Couldn't marshal JSON content")
-		return err
-	}
-	// encrypt
-	salt, err := GenerateSalt()
-	if err != nil {
-		return err
-	}
-	key := MakeKey([]byte(masterPassword), salt)
-	encrypted, err := Encrypt(nb, &key)
-	if err != nil {
-		return err
-	}
-	// overwrite file with new encrypted content
-	err = ioutil.WriteFile(path, append(salt[:], encrypted...), 0644)
-	if err != nil {
-		HandleErr(err, fmt.Sprintf("Couldn't write content file at path %v", path))
-		return err
-	}
+func StoreUpdateRemote(path string) error {
 	// git commit and push
 	repoPath, err := GetRepoPath()
 	if err != nil {
@@ -200,7 +163,46 @@ func StoreSetValue(path string, property string, value string, masterPassword st
 	if err != nil {
 		HandleErr(err, "Couldn't push commit to remote")
 	}
-	return err
+  return err
+}
+func StoreSetValue(path string, property string, value string, masterPassword string) error {
+	jsonDocument, err := GetJsonContent(path, masterPassword)
+	if err != nil {
+		return err
+	}
+	// update value
+	pointer, err := gojsonpointer.NewJsonPointer(property)
+	if err != nil {
+		HandleErr(err, fmt.Sprintf("%v is not a valid JSON pointer", property))
+		return err
+	}
+	_, err = pointer.Set(jsonDocument, value)
+	if err != nil {
+		HandleErr(err, fmt.Sprintf("Couldn't update content file at path %v with property %v and value %v", path, property, value))
+		return err
+	}
+	nb, err := json.Marshal(jsonDocument)
+	if err != nil {
+		HandleErr(err, "Couldn't marshal JSON content")
+		return err
+	}
+	// encrypt
+	salt, err := GenerateSalt()
+	if err != nil {
+		return err
+	}
+	key := MakeKey([]byte(masterPassword), salt)
+	encrypted, err := Encrypt(nb, &key)
+	if err != nil {
+		return err
+	}
+	// overwrite file with new encrypted content
+	err = ioutil.WriteFile(path, append(salt[:], encrypted...), 0644)
+	if err != nil {
+		HandleErr(err, fmt.Sprintf("Couldn't write content file at path %v", path))
+		return err
+	}
+	return StoreUpdateRemote(path)
 }
 
 func StoreGetValue(path string, property string, masterPassword string) (string, error) {
